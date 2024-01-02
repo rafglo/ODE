@@ -1,7 +1,8 @@
 import pandas as pd
 from itertools import count
-from matplotlib.animation import FuncAnimation
+import matplotlib.animation as animation
 import matplotlib.pyplot as plt
+import numpy as np
 
 def populacje(Z_0, W_0, a, b, r, s, n, h):
     wilki = [W_0]
@@ -24,18 +25,35 @@ h = 0.2
 ts = [i for i in range(0, n+1)]
 zajace, wilki = populacje(80, 20, a, b, r, s, n, h)
 
-plt.style.use("ggplot")
+
+fig, ax = plt.subplots()
+ax.axis([0, n, 0, 200])
+line2 = ax.plot(ts[0], zajace[0])[0]
+line1 = ax.plot(ts[0], wilki[0])[0]
+
+def update(frame):
+    line2.set_xdata(ts[:frame])
+    line2.set_ydata(zajace[:frame])
+    line1.set_xdata(ts[:frame])
+    line1.set_ydata(wilki[:frame])
+
+
+ani = animation.FuncAnimation(fig=fig, func=update, frames=1000, interval=30)
+plt.show()
+
+"""fig = plt.figure()
+ax1 = fig.add_subplot(1,1,1)
 
 def animate(i):
-    plt.cla()
-    x = ts 
-    y = zajace 
-    
-    plt.plot(x,y)
-    plt.xlabel("Czas")
-    plt.ylabel("Wielkość populacji")
-    plt.title("Symulacja modelu Lotki-Volterry")
+    xs = []
+    ys = []
+    for i in range(n):
+        xs.append(ts[i])
+        ys.append(zajace[i])
+    ax1.clear()
+    ax1.plot(xs, ys)
 
-ani = FuncAnimation(fig=plt.gcf(), func=animate, interval = 30, frames = 1, repeat = True)
-plt.tight_layout()
-plt.show()
+ani = animation.FuncAnimation(fig, animate, interval = 1000)
+plt.show()"""
+
+
