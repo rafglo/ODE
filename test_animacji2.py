@@ -1,137 +1,87 @@
-from ipywidgets.widgets import Label, FloatProgress, FloatSlider, Button, Play, IntSlider, jslink
-from ipywidgets.widgets import Layout, HBox, VBox
-from IPython.display import display
-import numpy as np 
-import bqplot as bq
-import time
-import threading
+"""
+Created on Wed Feb  2 02:56:21 2022
+
+@author: Ratnadeep Das Choudhury
+"""
+
+
+import numpy as np
 import matplotlib.pyplot as plt
-import asyncio
 
 
-def populacje(Z_0, W_0, a, b, r, s, n, h):
-    wilki = [W_0]
-    zajace = [Z_0]
-    for i in range(n):
-        W = float(wilki[-1])
-        Z = float(zajace[-1])
-        zajace.append(Z+(r*Z - a*Z*W)*h)
-        wilki.append(W+(-s*W + b*a*Z*W)*h)
+# Details about the variables and Runge Kutta method 4 are already written in the RK4func.m file under solution by MATLAB folder.
 
-    return zajace, wilki
+# Defining the General Model
 
-slider_a1 = FloatSlider(
-    value=0.002, 
-    min=0, 
-    max=0.01, 
-    step=0.0001, 
-    description="Skuteczność polowań wilków", 
-    disabled = False, 
-    readout = True, 
-    continuous_update=True,
-    readout_format='.4f', 
-    style={'description_width':'initial'},
-    layout=Layout(width="auto"))
-
-slider_b1 = FloatSlider(
-    value=1.25, 
-    min=1, 
-    max=2, 
-    step=0.01, 
-    description="Energia zużyta na rozmnażanie", 
-    disabled = False, 
-    readout = True, 
-    continuous_update=True,
-    readout_format='.2f', 
-    style={'description_width':'initial'}, 
-    layout=Layout(width="auto"))
-
-slider_r1 = FloatSlider(
-    value=0.1, 
-    min=0, 
-    max=1, 
-    step=0.01, 
-    description="Współczynnik rozrodczości zająców", 
-    disabled = False, 
-    readout = True, 
-    continuous_update=True,
-    readout_format='.2f', 
-    style={'description_width':'initial'}, 
-    layout=Layout(width="auto"))
-
-slider_s1 = FloatSlider(
-    value=0.2, 
-    min=0, 
-    max=1, 
-    step=0.01, 
-    description="Współczynnik śmiertelności wilków", 
-    disabled = False, 
-    readout = True, 
-    continuous_update=True,
-    readout_format='.2f', 
-    style={'description_width':'initial'}, 
-    layout=Layout(width="auto"))
-
-slider_n1 = IntSlider(
-    value=1000,
-    min=5, 
-    max=5000, 
-    step=5, 
-    description="Dni symulacji", 
-    disabled = False, 
-    readout = True, 
-    continuous_update=True,
-    readout_format='d', 
-    style={'description_width':'initial'}, 
-    layout=Layout(width="auto"))
-
-async def update():
-    for i in range(int(v)):
-        x = list(range(i*k + 2))
-        zajace_akt = zajace[:i*k+2]
-        wilki_akt = wilki[:i*k+2]
-        plt.subplot(1, 2, 1)
-        plt.cla()
-        plt.plot(x, zajace_akt, label="Zające")
-        plt.plot(x, wilki_akt, label="Wilki")
-        plt.xlabel("Czas")
-        plt.ylabel("Wielkość populacji")
-        plt.legend(loc="best")
-        plt.title("Wielkość obu populacji od czasu")
-
-        plt.subplot(1, 2, 2)
-        plt.cla()
-        plt.scatter(zajace_akt, wilki_akt, s=10)
-        plt.title("Populacja zająców od populacji wilków")
-        plt.xlabel("Populacja zająców")
-        plt.ylabel("Populacja wilków")
-
-        fig.canvas.draw()
-
-        await asyncio.sleep(0.05)
-
-def start_click(b):
-    loop = asyncio.get_event_loop()
-    loop.create_task(update())
-
-start_button = Button(description="Start", icon='play', button_style="success", layout=Layout(width='100px'))
-start_button.on_click(start_click)
-start_button = Button(description="Start", icon='play', button_style="success", layout=Layout(width='100px'))
-start_button.on_click(start_click)
-
-fig1 = plt.figure(figsize=(15, 5))
-fig1.suptitle("Symulacja modelu Lotki-Volterry")
+def LV(x,params):
+    
+    alpha = params['alpha']
+    beta = params['beta']
+    gamma = params['gamma']
+    delta = params['delta']
+    
+    xdot = np.array([alpha*x[0] - beta*x[0]*x[1], delta*x[0]*x[1] - gamma*x[1]])
+    
+    return xdot
 
 
-a1 = slider_a1.value
-b1 = slider_b1.value
-r1 = slider_r1.value
-s1 = slider_s1.value
-n1 = slider_n1.value
-h1 = 0.2
-zajace, wilki = populacje(80, 20, a1, b1, r1, s1, n1, h1)
 
-k = 5
-v1 = n1/k
+# Defining the Runge Kutta 4 Method
 
-display(slider_a1, slider_b1, slider_r1, slider_s1, slider_n1, start_button)
+def RK4(f, x0, t0, tf, dt):
+    
+    t = np.arange(t0, tf, dt)
+    nt = t.size
+    
+    nx = x0.size
+    x = np.zeros((nx,nt))
+    
+    x[:,0] = x0
+    
+    for k in range(nt-1):
+        k1 = dt*f(t[k], x[:,k]);
+        k2 = dt*f(t[k] + dt/2, x[:,k] + k1/2)
+        k3 = dt*f(t[k] + dt/2, x[:,k] + k2/2)
+        k4 = dt*f(t[k] + dt, x[:,k] + k3)
+        
+        dx=(k1 + 2*k2 + 2*k3 +k4)/6
+        x[:,k+1] = x[:,k] + dx;  
+    
+    return x, t
+    
+
+# Defining the problem
+
+params = {"alpha": 1.1, "beta": 0.4, "gamma": 0.4, "delta": 0.1}
+
+f= lambda t,x : LV(x, params)         # lambda is an anonymous function which can take may inputs but returns one output. Same case is with MATLAB denoted by @.
+x0 = np.array([20,5])                 # initial condition    
+
+
+
+# Solving the problem
+
+t0 = 0                                # time unit is second
+tf = 70
+dt = 0.01
+
+x, t = RK4(f, x0, t0, tf, dt)
+
+
+
+# Plotting the Results
+
+plt.subplot(1, 2, 1)
+plt.plot(t, x[0,:], "r", label="Preys")
+plt.plot(t, x[1,:], "b", label="Predators")
+plt.xlabel("Time (t)")
+plt.grid()
+plt.legend()
+
+plt.subplot(1, 2, 2)
+plt.plot(x[0,:], x[1,:])
+plt.xlabel("Preys")
+plt.ylabel("Predators")
+plt.grid()
+
+plt.show()
