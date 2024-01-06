@@ -4,6 +4,7 @@ import matplotlib.animation as animation
 import matplotlib.pyplot as plt
 import numpy as np
 
+
 def populacje(Z_0, W_0, a, b, r, s, n, h):
     wilki = [W_0]
     zajace = [Z_0]
