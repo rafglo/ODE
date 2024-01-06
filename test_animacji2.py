@@ -1,33 +1,137 @@
+from ipywidgets.widgets import Label, FloatProgress, FloatSlider, Button, Play, IntSlider, jslink
+from ipywidgets.widgets import Layout, HBox, VBox
+from IPython.display import display
+import numpy as np 
+import bqplot as bq
+import time
+import threading
 import matplotlib.pyplot as plt
-import numpy as np
-
-import matplotlib.animation as animation
-
-fig, ax = plt.subplots()
-t = np.linspace(0, 3, 40)
-g = -9.81
-v0 = 12
-z = g * t**2 / 2 + v0 * t
-
-v02 = 5
-z2 = g * t**2 / 2 + v02 * t
-
-scat = ax.scatter(t[0], z[0], c="b", s=5, label=f'v0 = {v0} m/s')
-line2 = ax.plot(t[0], z2[0], label=f'v0 = {v02} m/s')[0]
-ax.set(xlim=[0, 3], ylim=[-4, 10], xlabel='Time [s]', ylabel='Z [m]')
-ax.legend()
+import asyncio
 
 
-def update(frame):
-    # for each frame, update the data stored on each artist.
+def populacje(Z_0, W_0, a, b, r, s, n, h):
+    wilki = [W_0]
+    zajace = [Z_0]
+    for i in range(n):
+        W = float(wilki[-1])
+        Z = float(zajace[-1])
+        zajace.append(Z+(r*Z - a*Z*W)*h)
+        wilki.append(W+(-s*W + b*a*Z*W)*h)
 
-    # update the scatter plot:
-    
-    # update the line plot:
-    line2.set_xdata(t[:frame])
-    line2.set_ydata(z2[:frame])
-    return (scat, line2)
+    return zajace, wilki
+
+slider_a1 = FloatSlider(
+    value=0.002, 
+    min=0, 
+    max=0.01, 
+    step=0.0001, 
+    description="Skuteczność polowań wilków", 
+    disabled = False, 
+    readout = True, 
+    continuous_update=True,
+    readout_format='.4f', 
+    style={'description_width':'initial'},
+    layout=Layout(width="auto"))
+
+slider_b1 = FloatSlider(
+    value=1.25, 
+    min=1, 
+    max=2, 
+    step=0.01, 
+    description="Energia zużyta na rozmnażanie", 
+    disabled = False, 
+    readout = True, 
+    continuous_update=True,
+    readout_format='.2f', 
+    style={'description_width':'initial'}, 
+    layout=Layout(width="auto"))
+
+slider_r1 = FloatSlider(
+    value=0.1, 
+    min=0, 
+    max=1, 
+    step=0.01, 
+    description="Współczynnik rozrodczości zająców", 
+    disabled = False, 
+    readout = True, 
+    continuous_update=True,
+    readout_format='.2f', 
+    style={'description_width':'initial'}, 
+    layout=Layout(width="auto"))
+
+slider_s1 = FloatSlider(
+    value=0.2, 
+    min=0, 
+    max=1, 
+    step=0.01, 
+    description="Współczynnik śmiertelności wilków", 
+    disabled = False, 
+    readout = True, 
+    continuous_update=True,
+    readout_format='.2f', 
+    style={'description_width':'initial'}, 
+    layout=Layout(width="auto"))
+
+slider_n1 = IntSlider(
+    value=1000,
+    min=5, 
+    max=5000, 
+    step=5, 
+    description="Dni symulacji", 
+    disabled = False, 
+    readout = True, 
+    continuous_update=True,
+    readout_format='d', 
+    style={'description_width':'initial'}, 
+    layout=Layout(width="auto"))
+
+async def update():
+    for i in range(int(v)):
+        x = list(range(i*k + 2))
+        zajace_akt = zajace[:i*k+2]
+        wilki_akt = wilki[:i*k+2]
+        plt.subplot(1, 2, 1)
+        plt.cla()
+        plt.plot(x, zajace_akt, label="Zające")
+        plt.plot(x, wilki_akt, label="Wilki")
+        plt.xlabel("Czas")
+        plt.ylabel("Wielkość populacji")
+        plt.legend(loc="best")
+        plt.title("Wielkość obu populacji od czasu")
+
+        plt.subplot(1, 2, 2)
+        plt.cla()
+        plt.scatter(zajace_akt, wilki_akt, s=10)
+        plt.title("Populacja zająców od populacji wilków")
+        plt.xlabel("Populacja zająców")
+        plt.ylabel("Populacja wilków")
+
+        fig.canvas.draw()
+
+        await asyncio.sleep(0.05)
+
+def start_click(b):
+    loop = asyncio.get_event_loop()
+    loop.create_task(update())
+
+start_button = Button(description="Start", icon='play', button_style="success", layout=Layout(width='100px'))
+start_button.on_click(start_click)
+start_button = Button(description="Start", icon='play', button_style="success", layout=Layout(width='100px'))
+start_button.on_click(start_click)
+
+fig1 = plt.figure(figsize=(15, 5))
+fig1.suptitle("Symulacja modelu Lotki-Volterry")
 
 
-ani = animation.FuncAnimation(fig=fig, func=update, frames=40, blit=True, interval=30)
-plt.show()
+a1 = slider_a1.value
+b1 = slider_b1.value
+r1 = slider_r1.value
+s1 = slider_s1.value
+n1 = slider_n1.value
+h1 = 0.2
+zajace, wilki = populacje(80, 20, a1, b1, r1, s1, n1, h1)
+
+k = 5
+v1 = n1/k
+
+display(slider_a1, slider_b1, slider_r1, slider_s1, slider_n1, start_button)
